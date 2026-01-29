@@ -244,6 +244,11 @@ function alignBlockEq(editor: vscode.TextEditor, blockStart: number): number {
   let i = blockStart;
   for (; i < editor.document.lineCount; i++) {
     const line = editor.document.lineAt(i).text;
+    // Skip comment lines
+    if (isCommentLine(line)) {
+      i = i + 1;
+      break;
+    }
     let match = line.match(" = ");
     if (match?.index !== undefined) {
       if (!line.match(/^[^()]* = /)) {
@@ -274,6 +279,11 @@ function alignBlockColon(editor: vscode.TextEditor, blockStart: number): number 
   let i = blockStart;
   for (; i < editor.document.lineCount; i++) {
     const line = editor.document.lineAt(i).text;
+    // Skip comment lines
+    if (isCommentLine(line)) {
+      i = i + 1;
+      break;
+    }
     let match = line.match(/[^ ]: /);
     if (match?.index !== undefined) {
       if (!line.match(/^[^()]*: /)) {
@@ -333,7 +343,24 @@ function alignPositions(editor: vscode.TextEditor, positions: number[][], dir: '
   });
 }
 
+// Supported language IDs
+const SUPPORTED_LANGUAGES = ['typescript', 'typescriptreact'];
+
+function isCommentLine(line: string): boolean {
+  const trimmed = line.trim();
+  return trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*');
+}
+
 function checkFullEditorDocument(editor: vscode.TextEditor) {
+  // Only process TypeScript and TSX files
+  if (!SUPPORTED_LANGUAGES.includes(editor.document.languageId)) {
+    // Clear any existing decorations for non-supported files
+    decorations.delete(editor.document.fileName);
+    addedSpaces.delete(editor.document.fileName);
+    editor.setDecorations(decorationType, []);
+    return;
+  }
+
   decorations.delete(editor.document.fileName);
   addedSpaces.delete(editor.document.fileName);
   for (let i = 0; i < editor.document.lineCount;) {
