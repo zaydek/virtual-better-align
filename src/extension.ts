@@ -311,6 +311,32 @@ function alignBlockColon(editor: vscode.TextEditor, blockStart: number): number 
   return i;
 }
 
+function alignBlockLogicalOp(editor: vscode.TextEditor, blockStart: number): number {
+  let positions = [];
+
+  let i = blockStart;
+  for (; i < editor.document.lineCount; i++) {
+    const line = editor.document.lineAt(i).text;
+    // Skip comment lines
+    if (isCommentLine(line)) {
+      i = i + 1;
+      break;
+    }
+    // Match first && or || on the line
+    let match = line.match(/ (&&|\|\|) /);
+    if (match?.index !== undefined) {
+      positions.push([i, match.index + 1]);
+    } else {
+      i = i + 1;
+      break;
+    }
+  }
+
+  alignPositions(editor, positions, 'before');
+
+  return i;
+}
+
 function alignPositions(editor: vscode.TextEditor, positions: number[][], dir: 'before'|'after') {
   if (positions.length === 0) {
     return;
@@ -381,6 +407,9 @@ function checkFullEditorDocument(editor: vscode.TextEditor) {
   }
   for (let i = 0; i < editor.document.lineCount;) {
     i = alignBlockColon(editor, i);
+  }
+  for (let i = 0; i < editor.document.lineCount;) {
+    i = alignBlockLogicalOp(editor, i);
   }
 
   // if (blockStart !== undefined) {
